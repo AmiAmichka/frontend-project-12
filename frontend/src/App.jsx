@@ -1,14 +1,10 @@
-import { useEffect } from 'react'
-import axios from 'axios'
+import { RouterProvider } from "react-router";
+import router from "./router";
 
-function App() {
-  useEffect(() => {
-    axios.get('/api/v1/channels')
-      .then((res) => console.log(res.data))
-      .catch((err) => console.error(err))
-  }, [])
+const App = () => {
+  return (
+    <RouterProvider router={router} />
+  )
+};
 
-  return <div>Hello</div>
-}
-
-export default App
+export default App;
