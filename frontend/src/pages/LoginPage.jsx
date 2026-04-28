@@ -1,82 +1,48 @@
-import { useFormik } from 'formik';
-import { Card, Form, Button, FloatingLabel, Alert } from 'react-bootstrap';
+import { Card, Container, Row, Col } from 'react-bootstrap';
 import LoginImage from '../assets/login-img.jpg';
-import axios from 'axios';
-import { Navigate, useNavigate } from 'react-router';
-import { useState } from 'react';
+import { Navigate } from 'react-router';
+import Header from '../components/Header';
+import { LoginForm } from '../components/LoginForm';
 
 const LoginPage = () => {
-  const authToken =  localStorage.getItem('authToken');
-  const navigate = useNavigate();
-  const [error, setError] = useState(null);
+  const signupLink = '/signup';
+  const authToken = localStorage.getItem('authToken');
 
-  const formik = useFormik({
-    initialValues: {
-      username: '',
-      password: '',
-    },
-    onSubmit: async (values) => {
-      try {
-        const response = await axios.post('/api/v1/login', values);
-        const authToken = response.data.token;
-        localStorage.setItem('authToken', authToken);
-        setError(null);
-        navigate('/');
-
-      } catch (error) {
-        if (error.response?.status === 401) {
-          setError('Неверные имя пользователя или пароль')
-        } else {
-          console.error('Ошибка:', error);
-        }
-      }
-    },
-  });
   if (authToken) {
-    return <Navigate to="/" replace={true} />;
+    return <Navigate to="/" replace />;
   }
   return (
-    <Card>
-      <Card.Body>
-        <img src={LoginImage} alt="" />
-        <Card.Title>Войти</Card.Title>
-        <Form onSubmit={formik.handleSubmit}>
-          <Form.Group>
-            <FloatingLabel controlId="username" label="Ваш ник">
-              <Form.Control
-                id="username"
-                name="username"
-                type="text"
-                onChange={formik.handleChange}
-                value={formik.values.username}
-                required
-                autoFocus
-                placeholder="Ваш ник"
-                size="lg"
-              />
-            </FloatingLabel>
-          </Form.Group>
-          <Form.Group>
-            <FloatingLabel controlId="password" label="Пароль">
-              <Form.Control
-                type="password"
-                placeholder="Пароль"
-                id="password"
-                name="password"
-                onChange={formik.handleChange}
-                value={formik.values.password}
-                required
-                size="lg"
-              />
-            </FloatingLabel>
-          </Form.Group>
-          {error && <Alert variant='danger'>{error}</Alert>}
-          <Button variant="primary" type="submit">
-            Войти
-          </Button>
-        </Form>
-      </Card.Body>
-    </Card>
+    <>
+      <Header />
+      <main className="flex-grow-1 d-flex align-items-center justify-content-center bg-light">
+        <Container>
+          <Card className="mx-auto shadow-sm" style={{ maxWidth: '900px' }}>
+            <Card.Body className="p-5 p-md-5">
+              <Row className="align-items-center g-4">
+                <Col md={6} className="text-center">
+                  <img
+                    src={LoginImage}
+                    alt=""
+                    className="img-fluid"
+                    style={{ borderRadius: '50%' }}
+                  />
+                </Col>
+                <Col md={6}>
+                  <Card.Title className="mb-4 text-center fs-1 fw-semibold">
+                    Войти
+                  </Card.Title>
+                  <LoginForm />
+                </Col>
+              </Row>
+            </Card.Body>
+            <Card.Footer className="p-4 text-center fw-medium">
+              <span>Нет аккаунта? </span>
+              <a href={signupLink}>Регистрация</a>
+            </Card.Footer>
+          </Card>
+        </Container>
+      </main>
+    </>
   );
 };
 
