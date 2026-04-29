@@ -4,7 +4,7 @@ import { Navigate } from 'react-router';
 import Header from '../components/Header';
 import { LoginForm } from '../components/LoginForm';
 
-const LoginPage = () => {
+export const LoginPage = () => {
   const signupLink = '/signup';
   const authToken = localStorage.getItem('authToken');
 
@@ -45,5 +45,3 @@ const LoginPage = () => {
     </>
   );
 };
-
-export default LoginPage;

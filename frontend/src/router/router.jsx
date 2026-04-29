@@ -1,7 +1,7 @@
-import LoginPage from "../pages/LoginPage";
+import { LoginPage } from "../pages/LoginPage";
 import ChatPage from "../pages/ChatPage";
 import NotFoundPage from "../pages/NotFoundPage";
-import SignupPage from "../pages/SignupPage";
+import { SignupPage } from "../pages/SignupPage";
 import { createBrowserRouter } from "react-router";
 import { ProtectedRoute } from "./ProtectedRoute";
 
