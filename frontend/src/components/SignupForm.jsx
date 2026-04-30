@@ -32,8 +32,12 @@ export const SignupForm = () => {
     },
     validationSchema,
     onSubmit: async (values) => {
+      const userData = {
+        username: values.username,
+        password: values.password,
+      };
       try {
-        const response = await axios.post('/api/v1/signup', values);
+        const response = await axios.post('/api/v1/signup', userData);
         const token = response.data.token;
         localStorage.setItem('authToken', token);
         setError(null);

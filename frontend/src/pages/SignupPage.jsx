@@ -2,8 +2,14 @@ import { Card, Container, Row, Col } from 'react-bootstrap';
 import SignupImage from '../assets/signup-img.jpg';
 import Header from '../components/Header';
 import { SignupForm } from '../components/SignupForm';
+import { Navigate } from 'react-router';
 
 export const SignupPage = () => {
+  const authToken = localStorage.getItem('authToken');
+
+  if (authToken) {
+    return <Navigate to="/" replace />;
+  }
   return (
     <>
       <Header />
