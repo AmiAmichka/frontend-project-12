@@ -1,6 +1,6 @@
 import { Navbar, Container } from "react-bootstrap"
 
-const Header = () => {
+export const Header = () => {
   const chatLink = '/';
 
   return (
@@ -11,5 +11,3 @@ const Header = () => {
     </Navbar>
   )
 }
-
-export default Header;

@@ -1,7 +1,7 @@
 import { Card, Container, Row, Col } from 'react-bootstrap';
 import LoginImage from '../assets/login-img.jpg';
 import { Navigate } from 'react-router';
-import Header from '../components/Header';
+import { Header } from '../components/Header';
 import { LoginForm } from '../components/LoginForm';
 
 export const LoginPage = () => {
