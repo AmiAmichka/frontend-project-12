@@ -1,32 +1,48 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Container, Row, Col, ListGroup, Form, Button } from 'react-bootstrap';
+import {
+  Container,
+  Row,
+  Col,
+  ListGroup,
+  Form,
+  Button,
+  Spinner,
+} from 'react-bootstrap';
 import { Header } from '../components/Header';
 import { useFormik } from 'formik';
 
-const authToken = localStorage.getItem('authToken');
-const config = {
-  headers: {
-    Authorization: `Bearer ${authToken}`,
-  },
-};
-
 export const ChatPage = () => {
+  const authToken = localStorage.getItem('authToken');
+  const config = {
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+    },
+  };
+
   const [channels, setChannels] = useState([]);
   const [messages, setMessages] = useState([]);
   const [activeChannelId, setActiveChannelId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [loadingError, setLoadingError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
+      setLoadingError(null);
       try {
         const responseChannels = await axios.get('/api/v1/channels', config);
         const responseMessages = await axios.get('/api/v1/messages', config);
 
         setChannels(responseChannels.data);
         setMessages(responseMessages.data);
-        setActiveChannelId(responseChannels.data[0].id);
+        setActiveChannelId(responseChannels.data[0]?.id ?? null);
       } catch (error) {
         console.error('Ошибка:', error);
+        setLoadingError(error.message);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -42,22 +58,52 @@ export const ChatPage = () => {
       currentMessage: '',
     },
     onSubmit: async (values, { resetForm }) => {
+      const trimmedMessage = values.currentMessage.trim();
+      if (trimmedMessage.length === 0) {
+        return
+      }
+      setIsSending(true);
+
       try {
         const response = await axios.post(
           '/api/v1/messages',
           {
-            body: values.currentMessage,
+            body: trimmedMessage,
             channelId: activeChannelId,
           },
           config,
         );
-        setMessages([...messages, response.data]);
+        setMessages((prevMessages) => [...prevMessages, response.data]);
         resetForm();
       } catch (error) {
-        console.error('Ошибка:', error);
+        console.error('Не удалось загрузить чат', error);
+      } finally {
+        setIsSending(false);
       }
     },
   });
+
+  if (isLoading) {
+    return (
+      <>
+        <Header />
+        <main className="d-flex flex-grow-1 align-items-center justify-content-center">
+          <Container className="h-100">
+            <div className="d-flex flex-column align-items-center">
+              <Spinner animation="border" variant="primary"></Spinner>
+              <p className="text-center mb-0">Загрузка чата...</p>
+            </div>
+          </Container>
+        </main>
+      </>
+    );
+  }
+
+  if (loadingError) {
+    return <div>Ошибка: {loadingError}</div>;
+  }
+
+  const isMessageEmpty = formik.values.currentMessage.trim();
 
   return (
     <>
@@ -130,6 +176,7 @@ export const ChatPage = () => {
                         <Form onSubmit={formik.handleSubmit}>
                           <div className="input-group">
                             <Form.Control
+                              disabled={isSending}
                               aria-label="Новое сообщение"
                               placeholder="Введите сообщение..."
                               name="currentMessage"
@@ -139,7 +186,11 @@ export const ChatPage = () => {
                               autoFocus
                               autoComplete="off"
                             />
-                            <Button variant="primary" type="submit">
+                            <Button
+                              variant="primary"
+                              type="submit"
+                              disabled={isSending || isMessageEmpty.length === 0}
+                            >
                               Отправить
                             </Button>
                           </div>
