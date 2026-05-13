@@ -17,7 +17,9 @@ export const LoginForm = () => {
       try {
         const response = await axios.post('/api/v1/login', values);
         const token = response.data.token;
+        const authUsername = values.username;
         localStorage.setItem('authToken', token);
+        localStorage.setItem('username', authUsername);
         setError(null);
         navigate('/');
       } catch (error) {

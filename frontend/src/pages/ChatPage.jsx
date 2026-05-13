@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import {
   Container,
@@ -13,7 +13,10 @@ import { Header } from '../components/Header';
 import { useFormik } from 'formik';
 
 export const ChatPage = () => {
+  const messageInputRef = useRef(null);
+
   const authToken = localStorage.getItem('authToken');
+
   const config = {
     headers: {
       Authorization: `Bearer ${authToken}`,
@@ -59,6 +62,8 @@ export const ChatPage = () => {
     },
     onSubmit: async (values, { resetForm }) => {
       const trimmedMessage = values.currentMessage.trim();
+      const authUsername = localStorage.getItem('username');
+
       if (trimmedMessage.length === 0) {
         return
       }
@@ -68,6 +73,7 @@ export const ChatPage = () => {
         const response = await axios.post(
           '/api/v1/messages',
           {
+            username: authUsername,
             body: trimmedMessage,
             channelId: activeChannelId,
           },
@@ -82,6 +88,12 @@ export const ChatPage = () => {
       }
     },
   });
+
+  useEffect(() => {
+  if (!isSending && !isLoading) {
+    messageInputRef.current?.focus();
+  }
+}, [isSending, isLoading]);
 
   if (isLoading) {
     return (
@@ -108,7 +120,7 @@ export const ChatPage = () => {
   return (
     <>
       <Header />
-      <main className="flex-grow-1 bg-light py-4">
+      <main className="flex-grow-1 bg-light py-4 overflow-hidden">
         <Container className="h-100">
           <Row className="justify-content-center h-100">
             <Col xxl={10} xl={11} className="h-100">
@@ -117,7 +129,7 @@ export const ChatPage = () => {
                   <Col
                     md={4}
                     lg={3}
-                    className="h-100 border-end bg-light-subtle"
+                    className="h-100 border-end bg-white"
                   >
                     <div className="d-flex flex-column h-100">
                       <div className="d-flex justify-content-between align-items-center px-3 py-4 border-bottom bg-white">
@@ -126,7 +138,7 @@ export const ChatPage = () => {
                       </div>
                       <ListGroup
                         variant="flush"
-                        className="overflow-auto rounded-0"
+                        className="flex-grow-1 overflow-auto rounded-0"
                       >
                         {channels.map((channel) => (
                           <ListGroup.Item
@@ -145,7 +157,7 @@ export const ChatPage = () => {
                       </ListGroup>
                     </div>
                   </Col>
-                  <Col md={8} lg={9} className="h-100">
+                  <Col md={8} lg={9} className="h-100 bg-white">
                     <div className="d-flex flex-column h-100">
                       <div className="border-bottom px-4 py-4">
                         <p className="mb-1">
@@ -162,7 +174,7 @@ export const ChatPage = () => {
                           {activeChannelMessages.length} сообщений
                         </span>
                       </div>
-                      <div className="flex-grow-1 overflow-auto px-4 py-3">
+                      <div className="flex-grow-1 overflow-auto px-4 py-3 min-h-0">
                         <ul className="list-unstyled mb-0">
                           {activeChannelMessages.map((message) => (
                             <li key={message.id} className="mb-2">
@@ -185,13 +197,16 @@ export const ChatPage = () => {
                               value={formik.values.currentMessage}
                               autoFocus
                               autoComplete="off"
+                              ref={messageInputRef}
                             />
                             <Button
-                              variant="primary"
+                              variant="outline-secondary"
                               type="submit"
                               disabled={isSending || isMessageEmpty.length === 0}
+                              aria-label="Отправить"
+                              
                             >
-                              Отправить
+                              →
                             </Button>
                           </div>
                         </Form>

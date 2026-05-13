@@ -39,7 +39,9 @@ export const SignupForm = () => {
       try {
         const response = await axios.post('/api/v1/signup', userData);
         const token = response.data.token;
+        const authUsername = values.username;
         localStorage.setItem('authToken', token);
+        localStorage.setItem('username', authUsername);
         setError(null);
         navigate('/');
       } catch (error) {
