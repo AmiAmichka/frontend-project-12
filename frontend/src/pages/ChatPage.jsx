@@ -8,9 +8,19 @@ import {
   Form,
   Button,
   Spinner,
+  Modal,
 } from 'react-bootstrap';
 import { Header } from '../components/Header';
 import { useFormik } from 'formik';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  addChannel,
+  addMessage,
+  setActiveChannelId,
+  setChannels,
+  setMessages,
+} from '../store/chatSlice';
+import * as yup from 'yup';
 
 export const ChatPage = () => {
   const messageInputRef = useRef(null);
@@ -23,12 +33,35 @@ export const ChatPage = () => {
     },
   };
 
-  const [channels, setChannels] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [activeChannelId, setActiveChannelId] = useState(null);
+  const dispatch = useDispatch();
+  const channels = useSelector((state) => state.chat.channels);
+  const messages = useSelector((state) => state.chat.messages);
+  const activeChannelId = useSelector((state) => state.chat.activeChannelId);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isAddChannelModalShown, setIsAddChannelModalShown] = useState(false);
   const [loadingError, setLoadingError] = useState(null);
+
+  const channelNames = channels.map((channel) => channel.name)
+
+  const validationSchema = yup.object({
+    channelName: yup
+      .string()
+      .trim()
+      .required('Обязательное поле')
+      .min(3, 'От 3 до 20 символов')
+      .max(20, 'От 3 до 20 символов')
+      .notOneOf(channelNames, 'Должно быть уникальным'),
+  });
+
+  const handleShowAddChannelModal = () => {
+    setIsAddChannelModalShown(true);
+  };
+
+  const handleCloseAddChannelModal = () => {
+    setIsAddChannelModalShown(false);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,9 +71,9 @@ export const ChatPage = () => {
         const responseChannels = await axios.get('/api/v1/channels', config);
         const responseMessages = await axios.get('/api/v1/messages', config);
 
-        setChannels(responseChannels.data);
-        setMessages(responseMessages.data);
-        setActiveChannelId(responseChannels.data[0]?.id ?? null);
+        dispatch(setChannels(responseChannels.data));
+        dispatch(setMessages(responseMessages.data));
+        dispatch(setActiveChannelId(responseChannels.data[0]?.id ?? null));
       } catch (error) {
         console.error('Ошибка:', error);
         setLoadingError(error.message);
@@ -65,7 +98,7 @@ export const ChatPage = () => {
       const authUsername = localStorage.getItem('username');
 
       if (trimmedMessage.length === 0) {
-        return
+        return;
       }
       setIsSending(true);
 
@@ -79,7 +112,7 @@ export const ChatPage = () => {
           },
           config,
         );
-        setMessages((prevMessages) => [...prevMessages, response.data]);
+        dispatch(addMessage(response.data));
         resetForm();
       } catch (error) {
         console.error('Не удалось загрузить чат', error);
@@ -89,11 +122,38 @@ export const ChatPage = () => {
     },
   });
 
+  const addChannelFormik = useFormik({
+    initialValues: {
+      channelName: '',
+    },
+    validationSchema,
+    onSubmit: async (values, { resetForm }) => {
+      const trimmedChannelName = values.channelName.trim();
+
+      try {
+        if (trimmedChannelName.length === 0) {
+          return;
+        }
+        const response = await axios.post(
+          '/api/v1/channels',
+          { name: trimmedChannelName },
+          config,
+        );
+        dispatch(addChannel(response.data));
+        dispatch(setActiveChannelId(response.data.id));
+        resetForm();
+        handleCloseAddChannelModal();
+      } catch (error) {
+        console.error(error);
+      }
+    },
+  });
+
   useEffect(() => {
-  if (!isSending && !isLoading) {
-    messageInputRef.current?.focus();
-  }
-}, [isSending, isLoading]);
+    if (!isSending && !isLoading) {
+      messageInputRef.current?.focus();
+    }
+  }, [isSending, isLoading]);
 
   if (isLoading) {
     return (
@@ -126,15 +186,20 @@ export const ChatPage = () => {
             <Col xxl={10} xl={11} className="h-100">
               <div className="h-100 bg-white rounded shadow overflow-hidden">
                 <Row className="h-100 g-0">
-                  <Col
-                    md={4}
-                    lg={3}
-                    className="h-100 border-end bg-white"
-                  >
+                  <Col md={4} lg={3} className="h-100 border-end bg-white">
                     <div className="d-flex flex-column h-100">
                       <div className="d-flex justify-content-between align-items-center px-3 py-4 border-bottom bg-white">
                         <b>Каналы</b>
-                        <span className="text-muted">{channels.length}</span>
+                        <Button
+                          variant="outline-primary"
+                          className="rounded-1 d-flex align-items-center justify-content-center p-0"
+                          type="button"
+                          style={{ width: '20px', height: '20px' }}
+                          aria-label="Добавить канал"
+                          onClick={handleShowAddChannelModal}
+                        >
+                          +
+                        </Button>
                       </div>
                       <ListGroup
                         variant="flush"
@@ -146,7 +211,9 @@ export const ChatPage = () => {
                             active={channel.id === activeChannelId}
                             key={channel.id}
                             className="border-0 rounded-0 px-3 py-2"
-                            onClick={() => setActiveChannelId(channel.id)}
+                            onClick={() =>
+                              dispatch(setActiveChannelId(channel.id))
+                            }
                             variant={
                               channel.id === activeChannelId ? 'dark' : 'light'
                             }
@@ -202,9 +269,10 @@ export const ChatPage = () => {
                             <Button
                               variant="outline-secondary"
                               type="submit"
-                              disabled={isSending || isMessageEmpty.length === 0}
+                              disabled={
+                                isSending || isMessageEmpty.length === 0
+                              }
                               aria-label="Отправить"
-                              
                             >
                               →
                             </Button>
@@ -219,6 +287,43 @@ export const ChatPage = () => {
           </Row>
         </Container>
       </main>
+      <Modal
+        show={isAddChannelModalShown}
+        onHide={handleCloseAddChannelModal}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Добавить канал</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={addChannelFormik.handleSubmit}>
+            <div className="input-group">
+              <Form.Control
+                name="channelName"
+                onChange={addChannelFormik.handleChange}
+                value={addChannelFormik.values.channelName}
+                onBlur={addChannelFormik.handleBlur}
+                autoFocus
+                isInvalid={Boolean(
+                  addChannelFormik.touched.channelName &&
+                  addChannelFormik.errors.channelName,
+                )}
+              />
+              <Form.Control.Feedback type="invalid">
+                {addChannelFormik.errors.channelName}
+              </Form.Control.Feedback>
+            </div>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={handleCloseAddChannelModal}>
+                Отменить
+              </Button>
+              <Button variant="primary" type="submit">
+                Отправить
+              </Button>
+            </Modal.Footer>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </>
   );
 };
